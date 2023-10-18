@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 class SoapController extends Controller
 {
-    public function getUser()
+    public function getUser(Request $request)
     {
         $IP = "192.168.1.10"; // Set the IP address
         $Key = "0"; // Set the key
@@ -43,14 +43,18 @@ class SoapController extends Controller
                     $status = Parse_Data($data, "<Status>", "</Status");
                     $date = explode(" ",$datetime)[0];
                     $time = explode(" ",$datetime)[1];
-                    Attendance::create([
-                        'pin' => $pin,
-                        'date' => $date,
-                        'time' => $time,
-                        'status' => $status
-                    ]);
+                    $data = Attendance::where('date', $date)->where('time', $time)->where('pin', $pin)->get();
+                    if(!$data){
+                        Attendance::create([
+                            'pin' => $pin,
+                            'date' => $date,
+                            'time' => $time,
+                            'status' => $status
+                        ]);
+                    }
+                    
                 }
-                
+                // dd($buffer);
 
                 // You can insert the data into your database here
                 // For example, using Laravel's Eloquent:
@@ -61,9 +65,18 @@ class SoapController extends Controller
         } else {
             echo "Koneksi Gagal";
         }
-        // dd(Attendance::select('date')->distinct()->get());
+        $alldates = Attendance::select('date')->distinct()->get();
+        if($request->date)
+        {
+            return view('soap-response',  [
+                'data' => Attendance::where('date',$request->date)->get(),
+                'dates' => $alldates,
+                'selecteddate' => $request->date
+            ]);
+        }
         return view('soap-response',  [
-            'data' => Attendance::paginate(10)
+            'data' => Attendance::where('date',$alldates->last()->date)->get(),
+            'dates' => $alldates,
         ]);
     }
 }
